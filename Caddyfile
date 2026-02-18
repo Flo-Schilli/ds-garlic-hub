@@ -1,27 +1,43 @@
-localhost {
+(cors) {
+    @cors_preflight method OPTIONS
 
-    encode zstd br gzip
-    log {
-        output file var/logs/frankenphp.log
-        format console
-      	level ERROR
+    header {
+        Access-Control-Allow-Origin "*"
     }
 
-    root * ./public
-
-    php_server {
-        try_files {path} index.php
-    }
-
-    @rewrite {
-        not {
-            file
+    handle @cors_preflight {
+        header {
+            Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE"
+            Access-Control-Max-Age "3600"
         }
+        respond "" 204
+    }
+}
+
+http://localhost:80 {
+    @cors_preflight method OPTIONS
+
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Headers "*"
     }
 
-    handle @rewrite {
-        rewrite * index.php?{query}
+    handle @cors_preflight {
+        header {
+            Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE"
+            Access-Control-Max-Age "3600"
+            Access-Control-Allow-Headers "*"
+        }
+        respond "" 204
     }
 
-    file_server
+    reverse_proxy webserver:80 {
+        header_down -Access-Control-Allow-Origin
+        header_down -Access-Control-Allow-Headers
+    }
+
+    log {
+        output stdout
+    }
+
 }

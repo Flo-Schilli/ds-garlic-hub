@@ -4,13 +4,21 @@ services:
       context: .
       dockerfile: Dockerfile
     image: garlic-hub
+    container_name: garlich-hub
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    ports:
-      - "8090:80"
     volumes:
       - garlic-hub-public-var:/var/www/public/var
       - garlic-hub-var:/var/www/var
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
 
 # this seems to be required
 volumes:

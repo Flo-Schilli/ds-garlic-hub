@@ -95,220 +95,216 @@ class PlayerDataAssemblerTest extends TestCase
 	 * @throws Exception
 	 * @throws \Doctrine\DBAL\Exception
 	 */
-	#[Group('units')]
-	public function testHandleLocalPlayerReturnsExistingPlayer(): void
-	{
-		$playerData = ['player_id' => 1, 'uuid' => 'valid-uuid', 'status' => PlayerStatus::RELEASED->value, 'is_intranet' => true];
+    #[Group('units')]
+    public function testHandleLocalPlayerReturnsExistingPlayer(): void
+    {
+        $playerData = ['player_id' => 42, 'uuid' => 'valid-uuid', 'status' => PlayerStatus::RELEASED->value, 'is_intranet' => true];
 
-		$this->playerRepositoryMock->expects($this->once())->method('findPlayerById')
-			->with(1)
-			->willReturn($playerData);
-		$this->userAgentHandlerMock->expects($this->once())->method('getUuid')
-			->willReturn('valid-uuid');
+        $this->userAgentHandlerMock->expects($this->once())->method('getUuid')
+            ->willReturn('valid-uuid');
 
-		$this->playerEntityFactoryMock->expects($this->once())->method('create')
-			->with($playerData, $this->userAgentHandlerMock)
-			->willReturn($this->createMock(PlayerEntity::class));
+        $this->playerRepositoryMock->expects($this->once())->method('findPlayerByUuid')
+            ->with('valid-uuid')
+            ->willReturn($playerData);
 
-		$serverData = ['REMOTE_ADDR' => '192.168.10.9'];
-		$this->assembler->setServerData($serverData);
+        $this->playerRepositoryMock->expects($this->once())->method('updateLastAccess')
+            ->with(42);
 
-		$this->assembler->handleLocalPlayer();
-	}
+        $this->playerEntityFactoryMock->expects($this->once())->method('create')
+            ->with($playerData, $this->userAgentHandlerMock)
+            ->willReturn($this->createMock(PlayerEntity::class));
 
-	/**
-	 * @throws Exception
-	 */
-	#[Group('units')]
-	public function testHandleLocalPlayerInsertsNewPlayerLocalhost(): void
-	{
-		$this->playerRepositoryMock->expects($this->once())->method('findPlayerById')
-			->with(1)
-			->willReturn([]);
+        $serverData = ['REMOTE_ADDR' => '192.168.10.9'];
+        $this->assembler->setServerData($serverData);
 
-		$this->userAgentHandlerMock->expects($this->once())->method('getUuid')
-			->willReturn('u-u-i-d');
-		$this->userAgentHandlerMock->expects($this->once())->method('getName')
-			->willReturn('PlayerName');
-		$this->userAgentHandlerMock->expects($this->once())->method('getFirmware')
-			->willReturn('firmware');
-		$this->userAgentHandlerMock->expects($this->once())->method('getModel')
-			->willReturn(PlayerModel::IADEA_XMP1X0);
+        $this->assembler->handleLocalPlayer();
+    }
 
-		$this->configMock->expects($this->once())->method('getEnv')
-			->with('APP_CONTAINER')
-			->willReturn('');
+    #[Group('units')]
+    public function testHandleLocalPlayerInsertsNewPlayerLocalhost(): void
+    {
+        $this->userAgentHandlerMock->expects($this->once())->method('getUuid')
+            ->willReturn('u-u-i-d');
 
-		$insertData =  [
-			'player_id' => 1,
-			'uuid'        => 'u-u-i-d',
-			'player_name' => 'PlayerName',
-			'firmware'    => 'firmware',
-			'model'       => PlayerModel::IADEA_XMP1X0->value,
-			'playlist_id' => 0,
-			'UID'         => 1,
-			'status'      => PlayerStatus::RELEASED->value,
-			'refresh'     => 900,
-			'licence_id'  => 1,
-			'commands'    => [],
-			'reports'     => [],
-			'location_data' => [],
-			'location_longitude' => '',
-			'location_latitude' => '',
-			'categories' => [],
-			'properties' => [],
-			'remote_administration' => [],
-			'screen_times' => [],
-			'is_intranet' => true,
-			'api_endpoint' => 'http://localhost:8080/v2'
-		];
-		$result   = [
-			'player_id'  => 1,
-			'status' => PlayerStatus::RELEASED->value,
-			'licence_id' => 1,
-			'is_intranet' => true,
-			'api_endpoint' => 'http://localhost:8080/v2'
-			];
+        $this->playerRepositoryMock->expects($this->once())->method('findPlayerByUuid')
+            ->with('u-u-i-d')
+            ->willReturn([]);
 
-		$this->playerRepositoryMock->expects($this->once())->method('insertPlayer')
-			->with($insertData)
-			->willReturn(1);
+        $this->userAgentHandlerMock->expects($this->once())->method('getName')
+            ->willReturn('PlayerName');
+        $this->userAgentHandlerMock->expects($this->once())->method('getFirmware')
+            ->willReturn('firmware');
+        $this->userAgentHandlerMock->expects($this->once())->method('getModel')
+            ->willReturn(PlayerModel::IADEA_XMP1X0);
 
-		$this->playerEntityFactoryMock->expects($this->once())->method('create')
-			->with($result, $this->userAgentHandlerMock)
-			->willReturn($this->createMock(PlayerEntity::class));
+        $this->configMock->expects($this->once())->method('getEnv')
+            ->with('APP_CONTAINER')
+            ->willReturn('');
 
-		$serverData = ['REMOTE_ADDR' => '192.168.10.9'];
-		$this->assembler->setServerData($serverData);
+        $insertData =  [
+            'uuid'        => 'u-u-i-d',
+            'player_name' => 'PlayerName',
+            'firmware'    => 'firmware',
+            'model'       => PlayerModel::IADEA_XMP1X0->value,
+            'playlist_id' => 0,
+            'UID'         => 1,
+            'status'      => PlayerStatus::RELEASED->value,
+            'refresh'     => PlayerEntity::DEFAULT_PLAYER_REFRESH,
+            'licence_id'  => 1,
+            'commands'    => [],
+            'reports'     => [],
+            'location_data' => [],
+            'location_longitude' => '',
+            'location_latitude' => '',
+            'categories' => [],
+            'properties' => [],
+            'remote_administration' => [],
+            'screen_times' => [],
+            'is_intranet' => true,
+            'api_endpoint' => 'http://localhost:8080/v2'
+        ];
 
-		$this->assembler->handleLocalPlayer();
-	}
+        $this->playerRepositoryMock->expects($this->once())->method('insertPlayer')
+            ->with($insertData)
+            ->willReturn(123);
 
-	/**
-	 * @throws Exception
-	 */
-	#[Group('units')]
-	public function testHandleLocalPlayerInsertsNewPlayerDocker(): void
-	{
-		$this->playerRepositoryMock->expects($this->once())->method('findPlayerById')
-			->with(1)
-			->willReturn([]);
+        $this->playerRepositoryMock->expects($this->once())->method('updateLastAccess')
+            ->with(123);
 
-		$this->userAgentHandlerMock->expects($this->once())->method('getUuid')
-			->willReturn('u-u-i-d');
-		$this->userAgentHandlerMock->expects($this->once())->method('getName')
-			->willReturn('PlayerName');
-		$this->userAgentHandlerMock->expects($this->once())->method('getFirmware')
-			->willReturn('firmware');
-		$this->userAgentHandlerMock->expects($this->once())->method('getModel')
-			->willReturn(PlayerModel::IADEA_XMP1X0);
+        $result = array_merge($insertData, ['player_id' => 123]);
 
-		$this->configMock->expects($this->once())->method('getEnv')
-			->with('APP_CONTAINER')
-			->willReturn(Config::APP_CONTAINER_DOCKER);
+        $this->playerEntityFactoryMock->expects($this->once())->method('create')
+            ->with($result, $this->userAgentHandlerMock)
+            ->willReturn($this->createMock(PlayerEntity::class));
 
-		$insertData =  [
-			'player_id' => 1,
-			'uuid'        => 'u-u-i-d',
-			'player_name' => 'PlayerName',
-			'firmware'    => 'firmware',
-			'model'       => PlayerModel::IADEA_XMP1X0->value,
-			'playlist_id' => 0,
-			'UID'         => 1,
-			'status'      => PlayerStatus::RELEASED->value,
-			'refresh'     => 900,
-			'licence_id'  => 1,
-			'commands'    => [],
-			'reports'     => [],
-			'location_data' => [],
-			'location_longitude' => '',
-			'location_latitude' => '',
-			'categories' => [],
-			'properties' => [],
-			'remote_administration' => [],
-			'screen_times' => [],
-			'is_intranet' => true,
-			'api_endpoint' => 'http://host.docker.internal:8080/v2'
-		];
-		$result   = [
-			'player_id'  => 1,
-			'status' => PlayerStatus::RELEASED->value,
-			'licence_id' => 1,
-			'is_intranet' => true,
-			'api_endpoint' => 'http://host.docker.internal:8080/v2'
-		];
+        $serverData = ['REMOTE_ADDR' => '192.168.10.9'];
+        $this->assembler->setServerData($serverData);
 
-		$this->playerRepositoryMock->expects($this->once())->method('insertPlayer')
-			->with($insertData)
-			->willReturn(1);
+        $this->assembler->handleLocalPlayer();
+    }
 
-		$this->playerEntityFactoryMock->expects($this->once())->method('create')
-			->with($result, $this->userAgentHandlerMock)
-			->willReturn($this->createMock(PlayerEntity::class));
+    #[Group('units')]
+    public function testHandleLocalPlayerInsertsNewPlayerDocker(): void
+    {
+        $this->userAgentHandlerMock->expects($this->once())->method('getUuid')
+            ->willReturn('u-u-i-d');
 
-		$serverData = ['REMOTE_ADDR' => '192.168.10.9'];
-		$this->assembler->setServerData($serverData);
+        $this->playerRepositoryMock->expects($this->once())->method('findPlayerByUuid')
+            ->with('u-u-i-d')
+            ->willReturn([]);
 
-		$this->assembler->handleLocalPlayer();
-	}
+        $this->userAgentHandlerMock->expects($this->once())->method('getName')
+            ->willReturn('PlayerName');
+        $this->userAgentHandlerMock->expects($this->once())->method('getFirmware')
+            ->willReturn('firmware');
+        $this->userAgentHandlerMock->expects($this->once())->method('getModel')
+            ->willReturn(PlayerModel::IADEA_XMP1X0);
 
+        $this->configMock->expects($this->once())->method('getEnv')
+            ->with('APP_CONTAINER')
+            ->willReturn(Config::APP_CONTAINER_DOCKER);
 
-	/**
-	 * @throws \Doctrine\DBAL\Exception
-	 */
-	#[Group('units')]
-	public function testHandleLocalPlayerThrowsExceptionForFailedInsertion(): void
-	{
-		$this->playerRepositoryMock->expects($this->once())->method('findPlayerById')
-			->with(1)
-			->willReturn([]);
+        $insertData =  [
+            'uuid'        => 'u-u-i-d',
+            'player_name' => 'PlayerName',
+            'firmware'    => 'firmware',
+            'model'       => PlayerModel::IADEA_XMP1X0->value,
+            'playlist_id' => 0,
+            'UID'         => 1,
+            'status'      => PlayerStatus::RELEASED->value,
+            'refresh'     => PlayerEntity::DEFAULT_PLAYER_REFRESH,
+            'licence_id'  => 1,
+            'commands'    => [],
+            'reports'     => [],
+            'location_data' => [],
+            'location_longitude' => '',
+            'location_latitude' => '',
+            'categories' => [],
+            'properties' => [],
+            'remote_administration' => [],
+            'screen_times' => [],
+            'is_intranet' => true,
+            'api_endpoint' => 'http://host.docker.internal:8080/v2'
+        ];
 
-		$this->userAgentHandlerMock->expects($this->once())->method('getUuid')
-			->willReturn('u-u-i-d');
-		$this->userAgentHandlerMock->expects($this->once())->method('getName')
-			->willReturn('PlayerName');
-		$this->userAgentHandlerMock->expects($this->once())->method('getFirmware')
-			->willReturn('firmware');
-		$this->userAgentHandlerMock->expects($this->once())->method('getModel')
-			->willReturn(PlayerModel::IADEA_XMP1X0);
-		$insertData =  [
-			'player_id' => 1,
-			'api_endpoint' => 'http://localhost:8080/v2',
-			'uuid'        => 'u-u-i-d',
-			'player_name' => 'PlayerName',
-			'firmware'    => 'firmware',
-			'model'       => PlayerModel::IADEA_XMP1X0->value,
-			'playlist_id' => 0,
-			'UID'         => 1,
-			'status'      => PlayerStatus::RELEASED->value,
-			'refresh'     => 900,
-			'licence_id'  => 1,
-			'commands'    => [],
-			'reports'     => [],
-			'location_data' => [],
-			'location_longitude' => '',
-			'location_latitude' => '',
-			'categories' => [],
-			'properties' => [],
-			'remote_administration' => [],
-			'screen_times' => [],
-			'is_intranet' => true,
-		];
+        $this->playerRepositoryMock->expects($this->once())->method('insertPlayer')
+            ->with($insertData)
+            ->willReturn(123);
 
-		$this->playerRepositoryMock->expects($this->once())
-			->method('insertPlayer')
-			->with($insertData)
-			->willReturn(0);
+        $this->playerRepositoryMock->expects($this->once())->method('updateLastAccess')
+            ->with(123);
 
-		$this->expectException(ModuleException::class);
-		$this->expectExceptionMessage('Failed to insert local player');
+        $result = array_merge($insertData, ['player_id' => 123]);
 
-		$this->playerEntityFactoryMock->expects($this->never())->method('create');
-		$serverData = ['REMOTE_ADDR' => '192.168.10.9'];
-		$this->assembler->setServerData($serverData);
+        $this->playerEntityFactoryMock->expects($this->once())->method('create')
+            ->with($result, $this->userAgentHandlerMock)
+            ->willReturn($this->createMock(PlayerEntity::class));
 
-		$this->assembler->handleLocalPlayer();
-	}
+        $serverData = ['REMOTE_ADDR' => '192.168.10.9'];
+        $this->assembler->setServerData($serverData);
+
+        $this->assembler->handleLocalPlayer();
+    }
+
+    #[Group('units')]
+    public function testHandleLocalPlayerThrowsExceptionForFailedInsertion(): void
+    {
+        $this->userAgentHandlerMock->expects($this->once())->method('getUuid')
+            ->willReturn('u-u-i-d');
+
+        $this->playerRepositoryMock->expects($this->once())->method('findPlayerByUuid')
+            ->with('u-u-i-d')
+            ->willReturn([]);
+
+        $this->userAgentHandlerMock->expects($this->once())->method('getName')
+            ->willReturn('PlayerName');
+        $this->userAgentHandlerMock->expects($this->once())->method('getFirmware')
+            ->willReturn('firmware');
+        $this->userAgentHandlerMock->expects($this->once())->method('getModel')
+            ->willReturn(PlayerModel::IADEA_XMP1X0);
+
+        $this->configMock->expects($this->once())->method('getEnv')
+            ->with('APP_CONTAINER')
+            ->willReturn('');
+
+        $insertData =  [
+            'uuid'        => 'u-u-i-d',
+            'player_name' => 'PlayerName',
+            'firmware'    => 'firmware',
+            'model'       => PlayerModel::IADEA_XMP1X0->value,
+            'playlist_id' => 0,
+            'UID'         => 1,
+            'status'      => PlayerStatus::RELEASED->value,
+            'refresh'     => PlayerEntity::DEFAULT_PLAYER_REFRESH,
+            'licence_id'  => 1,
+            'commands'    => [],
+            'reports'     => [],
+            'location_data' => [],
+            'location_longitude' => '',
+            'location_latitude' => '',
+            'categories' => [],
+            'properties' => [],
+            'remote_administration' => [],
+            'screen_times' => [],
+            'is_intranet' => true,
+            'api_endpoint' => 'http://localhost:8080/v2'
+        ];
+
+        $this->playerRepositoryMock->expects($this->once())
+            ->method('insertPlayer')
+            ->with($insertData)
+            ->willReturn(0);
+
+        $this->expectException(ModuleException::class);
+        $this->expectExceptionMessage('Failed to insert local player');
+
+        $this->playerEntityFactoryMock->expects($this->never())->method('create');
+
+        $serverData = ['REMOTE_ADDR' => '192.168.10.9'];
+        $this->assembler->setServerData($serverData);
+
+        $this->assembler->handleLocalPlayer();
+    }
 
 
 	/**
@@ -349,7 +345,7 @@ class PlayerDataAssemblerTest extends TestCase
 			'playlist_id' => 0,
 			'UID' => $ownerId,
 			'status' => PlayerStatus::UNRELEASED->value,
-			'refresh' => 900,
+			'refresh' => PlayerEntity::DEFAULT_PLAYER_REFRESH,
 			'licence_id' => 0,
 			'commands' => [],
 			'reports' => [],
@@ -393,7 +389,7 @@ class PlayerDataAssemblerTest extends TestCase
 			'playlist_id' => 0,
 			'UID' => $ownerId,
 			'status' => PlayerStatus::UNRELEASED->value,
-			'refresh' => 900,
+			'refresh' => PlayerEntity::DEFAULT_PLAYER_REFRESH,
 			'licence_id' => 0,
 			'commands' => [],
 			'reports' => [],
@@ -440,7 +436,7 @@ class PlayerDataAssemblerTest extends TestCase
 			'playlist_id' => 0,
 			'UID' => $ownerId,
 			'status' => PlayerStatus::RELEASED->value,
-			'refresh' => 900,
+			'refresh' => PlayerEntity::DEFAULT_PLAYER_REFRESH,
 			'licence_id' => 1,
 			'commands' => [],
 			'reports' => [],
