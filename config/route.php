@@ -27,6 +27,7 @@ use App\Modules\Mediapool\Controller\MediaController;
 use App\Modules\Mediapool\Controller\NodesController;
 use App\Modules\Mediapool\Controller\ShowController;
 use App\Modules\Mediapool\Controller\UploadController;
+use App\Modules\Player\Controller\PlayerController;
 use App\Modules\Player\Controller\PlayerPlaylistController;
 use App\Modules\Player\Controller\PlayerIndexController;
 use App\Modules\Player\Controller\ShowConnectivityController;
@@ -113,6 +114,15 @@ $app->group('', function (RouteCollectorProxy $group) use ($container)
 	$group->get('/player', resolve([\App\Modules\Player\Controller\ShowDatatableController::class, 'show'], $container));
 	$group->get('/player/connectivity/{player_id}', resolve([ShowConnectivityController::class, 'show'], $container));
 	$group->post('/player/connectivity', resolve([ShowConnectivityController::class, 'store'], $container));
+
+	$group->get('/templates', resolve([\App\Modules\Templates\Controller\ShowDatatableController::class, 'show'], $container));
+	$group->get('/templates/settings/{type:canvas|svg|html}', resolve([\App\Modules\Templates\Controller\ShowSettingsController::class, 'create'], $container));
+	$group->get('/templates/settings/{template_id:\d+}', resolve([\App\Modules\Templates\Controller\ShowSettingsController::class, 'edit'], $container));
+	$group->post('/templates/settings', resolve([\App\Modules\Templates\Controller\ShowSettingsController::class, 'store'], $container));
+
+	$group->get('/templates/composer/{template_id:\d+}', resolve([\App\Modules\Templates\Controller\ShowSettingsController::class, 'compose'], $container));
+
+
 })->add($container->get(FinalRenderMiddleware::class));
 
 $app->group('/api', function (RouteCollectorProxy $group) use ($container)
@@ -167,6 +177,9 @@ $app->group('/async', function (RouteCollectorProxy $group) use ($container)
 
 	$group->patch('/player/playlist', resolve([PlayerPlaylistController::class, 'replacePlaylist'], $container));
 	$group->patch('/player/push', resolve([PlayerPlaylistController::class, 'pushPlaylist'], $container));
+	$group->get('/player/acls/{player_id:\d+}', resolve([PlayerController::class, 'determineRights'], $container));
+	$group->get('/player/{player_id:\d+}', resolve([PlayerController::class, 'fetchPlayer'], $container));
+	$group->delete('/player', resolve([PlayerController::class, 'delete'], $container));
 
 	$group->get('/users/find/{username}', resolve([UsersController::class, 'findByName'], $container));
 

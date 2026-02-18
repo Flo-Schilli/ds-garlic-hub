@@ -40,10 +40,10 @@ class Validator extends BaseValidator
 {
 	private Parameters $networkParameters;
 
-	public function __construct(Translator $translator, Parameters $networkParameters, CsrfToken $csrfToken)
+	public function __construct(Translator $translator, Parameters $settingsParameters, CsrfToken $csrfToken)
 	{
 		parent::__construct($translator, $csrfToken);
-		$this->networkParameters = $networkParameters;
+		$this->networkParameters = $settingsParameters;
 	}
 
 	/**

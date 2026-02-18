@@ -55,6 +55,7 @@ abstract class FilterBase extends SqlBase
 	public function findAllFiltered(array $fields): array
 	{
 		$selects  = $this->prepareSelectFilteredForUser();
+		$selects[] = "'moduleadmin'";
 		$where 	  = $this->prepareWhereForFiltering($fields);
 		$orderBy  = [$this->prepareOrderBy($fields)];
 		$join     = $this->prepareJoin();
@@ -87,6 +88,7 @@ abstract class FilterBase extends SqlBase
 	public function findAllFilteredByUIDCompanyReseller(array $companyIds, array $fields, int $UID): array
 	{
 		$selects = $this->prepareSelectFiltered();
+		$selects[] = "'subadmin'";
 		$where   = $this->buildRestrictedWhereForCountAndFindSearch($companyIds,  $fields, $UID);
 		$join    = $this->prepareJoin();
 		$orderBy = [$this->prepareOrderBy($fields)];
@@ -118,6 +120,7 @@ abstract class FilterBase extends SqlBase
 	public function findAllFilteredByUID(array $fields, int $UID): array
 	{
 		$selects = $this->prepareSelectFiltered();
+		$selects[] = "'user'";
 		$where   = $this->prepareWhereForFiltering($fields);
 		$where[$this->table.'.UID'] = $this->generateWhereClause($UID);
 		$orderBy = [$this->prepareOrderBy($fields)];
@@ -174,8 +177,8 @@ abstract class FilterBase extends SqlBase
 	{
 		// no sort column
 		if (!array_key_exists(BaseFilterParametersInterface::PARAMETER_SORT_COLUMN, $fields) ||
-			empty($fields[BaseFilterParametersInterface::PARAMETER_SORT_COLUMN]) ||
-			!array_key_exists('value', $fields[BaseFilterParametersInterface::PARAMETER_SORT_COLUMN]))
+			!array_key_exists('value', $fields[BaseFilterParametersInterface::PARAMETER_SORT_COLUMN]) ||
+			$fields[BaseFilterParametersInterface::PARAMETER_SORT_COLUMN]['value'] === '')
 			return [];
 
 		// validate
