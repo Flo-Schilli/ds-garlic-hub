@@ -81,38 +81,39 @@ class PlayerDataAssembler
 	 * @throws Exception
 	 * @throws ModuleException
 	 */
-	public function handleLocalPlayer(): PlayerEntity
-	{
-		$result = $this->playerRepository->findPlayerById(1);
+    public function handleLocalPlayer(): PlayerEntity
+    {
+        $uuid   = $this->userAgentHandler->getUuid();
+        $result = $this->playerRepository->findPlayerByUuid($uuid);
 
-		if ($result === [])
-		{
-			$saveData = $this->buildInsertArray();
-			// we need this to init playerEntity not with normal default values.
-			if ($this->config->getEnv('APP_CONTAINER') === Config::APP_CONTAINER_DOCKER)
-				$apiEndpoint = 'http://host.docker.internal:8080/v2';
-			else
-				$apiEndpoint = 'http://localhost:8080/v2';
+        if ($result === [])
+        {
+            $saveData = $this->buildInsertArray();
 
-			$result   = [
-				'player_id'  => 1,
-				'status' => PlayerStatus::RELEASED->value,
-				'api_endpoint' => $apiEndpoint,
-				'is_intranet' => true,
-				'licence_id' => 1
-			];
+            // we need this to init playerEntity not with normal default values.
+            if ($this->config->getEnv('APP_CONTAINER') === Config::APP_CONTAINER_DOCKER)
+                $apiEndpoint = 'http://host.docker.internal:8080/v2';
+            else
+                $apiEndpoint = 'http://localhost:8080/v2';
 
-			$id = $this->playerRepository->insertPlayer(array_merge($saveData, $result));
-			if ($id === 0)
-				throw new ModuleException('player_index', 'Failed to insert local player');
-		}
-		elseif ($result['uuid'] !== $this->userAgentHandler->getUuid())
-			throw new ModuleException('player_index', 'Wrong Uuid for local player: '. $result['uuid'] .' != Agent'. $this->userAgentHandler->getUuid());
+            $localDefaults = [
+                'status'       => PlayerStatus::RELEASED->value,
+                'api_endpoint' => $apiEndpoint,
+                'is_intranet'  => true,
+                'licence_id'   => 1,
+            ];
 
-		$this->playerRepository->updateLastAccess(1);
+            $id = $this->playerRepository->insertPlayer(array_merge($saveData, $localDefaults));
+            if ($id === 0)
+                throw new ModuleException('player_index', 'Failed to insert local player');
 
-		return $this->playerEntityFactory->create($result, $this->userAgentHandler);
-	}
+            $result = array_merge($saveData, $localDefaults, ['player_id' => $id]);
+        }
+
+        $this->playerRepository->updateLastAccess((int) $result['player_id']);
+
+        return $this->playerEntityFactory->create($result, $this->userAgentHandler);
+    }
 
 	/**
 	 * @throws ModuleException
