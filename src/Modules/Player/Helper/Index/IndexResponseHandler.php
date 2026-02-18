@@ -177,9 +177,10 @@ class IndexResponseHandler
 
 	private function addAccessControlHeader(ResponseInterface $response): ResponseInterface
 	{
-		return $response->withHeader('Access-Control-Allow-Origin', '*')
-						->withHeader('Access-Control-Allow-Methods', 'HEAD, GET, OPTIONS')
-						->withHeader('Access-Control-Max-Age', '86400')
-						->withHeader('Access-Control-Allow-Headers', 'User-Agent, If-None-Match, If-Modified-Since, Authorization, X-Signage-Agent');
+		return $response;
+//                      ->withHeader('Access-Control-Allow-Origin', '*')
+//						->withHeader('Access-Control-Allow-Methods', 'HEAD, GET, OPTIONS')
+//						->withHeader('Access-Control-Max-Age', '86400')
+//						->withHeader('Access-Control-Allow-Headers', 'User-Agent, If-None-Match, If-Modified-Since, Authorization, X-Signage-Agent');
 	}
 }
